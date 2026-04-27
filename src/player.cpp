@@ -863,7 +863,7 @@ void Player::drawMenuType2(Draw *canvas, uint8_t selectedIndexMain, uint8_t sele
         char showPlayerStatus[20];
         snprintf(soundStatus, sizeof(soundStatus), "Sound: %s", toggleToString(soundToggle));
         snprintf(vibrationStatus, sizeof(vibrationStatus), "Vibrate: %s", toggleToString(vibrationToggle));
-        snprintf(showPlayerStatus, sizeof(showPlayerStatus), "MiniMap: %s", toggleToString(showMiniMapToggle));
+        snprintf(showPlayerStatus, sizeof(showPlayerStatus), "Mini Map: %s", toggleToString(showMiniMapToggle));
         // draw settings info
         switch (selectedIndexSettings)
         {
@@ -1984,16 +1984,14 @@ void Player::render(Draw *canvas, Game *game)
         {
             canvas->setFont(FONT_SIZE_SMALL);
             char ammoStr[16];
-            uint16_t ammo = equippedWeapon->getAmmo();
-            if (ammo > 0)
-            {
-                snprintf(ammoStr, sizeof(ammoStr), "Ammo: %d", ammo);
-            }
-            else
-            {
-                snprintf(ammoStr, sizeof(ammoStr), "Ammo: ∞");
-            }
+            snprintf(ammoStr, sizeof(ammoStr), "Ammo: %d", equippedWeapon->getAmmo());
             canvas->text(sw * 4 / 128, sh * 61 / 64, ammoStr, color);
+
+            // draw crosshair
+            Vector aim_point = Vector(position.x + direction.x * 10.0f, WEAPON_VIEW_HEIGHT, position.y + direction.y * 10.0f);
+            Vector crosshair_pos;
+            game->current_level->project3DTo2D(aim_point, position, direction, game->camera->height, canvas->getDisplaySize(), crosshair_pos);
+            canvas->circle(sw / 2, crosshair_pos.y, 2, color);
         }
 
         // draw health
@@ -2237,7 +2235,7 @@ void Player::updateEquippedWeaponPosition()
         return;
     }
     const float adjustment = 0.7f;
-    equippedWeapon->position_set(position.x - this->direction.x * adjustment, position.y - this->direction.y * adjustment, 1.0f);
+    equippedWeapon->position_set(position.x - this->direction.x * adjustment, position.y - this->direction.y * adjustment, WEAPON_VIEW_HEIGHT);
     equippedWeapon->direction = this->direction;
     equippedWeapon->plane = this->plane;
     if (equippedWeapon->has3DSprite())
