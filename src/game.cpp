@@ -3,7 +3,6 @@
 #include "pico-game-engine/engine/draw.hpp"
 #include "pico-game-engine/engine/game.hpp"
 #include "pico-game-engine/engine/engine.hpp"
-#include "enemy.hpp"
 #include <math.h>
 
 GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEnabled)
@@ -137,6 +136,13 @@ Vector GhoulsGame::getRandomGhoulPosition(Level *level)
         }
     } while (positionExistsInLevel(level, spawnPoints[randomIndex]));
     return Vector(spawnPoints[randomIndex].x * 4, spawnPoints[randomIndex].y * 4); // scale up to map coordinates
+}
+
+EnemyType GhoulsGame::getRandomGhoulType() const
+{
+    const EnemyType ghoulTypes[] = {ENEMY_BULLY, ENEMY_CREEPER, ENEMY_PUNK};
+    const uint8_t randomIndex = rand() % (sizeof(ghoulTypes) / sizeof(ghoulTypes[0]));
+    return ghoulTypes[randomIndex];
 }
 
 Vector GhoulsGame::getRandomWeaponPosition(Level *level)
@@ -434,7 +440,7 @@ bool GhoulsGame::spawnOneGhoul()
         ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Current level instance is null");
         return false;
     }
-    Entity *ghoul = ENGINE_MEM_NEW Enemy("Ghoul", getRandomGhoulPosition(level), ENEMY_BULLY, 1.7f, 1.5f, 0.f, player->position);
+    Entity *ghoul = ENGINE_MEM_NEW Enemy("Ghoul", getRandomGhoulPosition(level), getRandomGhoulType(), 1.7f, 1.5f, 0.f, player->position);
     if (!ghoul)
     {
         ENGINE_LOG_INFO("[GhoulsGame:spawnOneGhoul] Failed to create Enemy instance for Ghoul");
