@@ -9,7 +9,10 @@
 Projectile::Projectile(ProjectileType type, float height, Vector position) : Entity("Projectile", ENTITY_ICON, position, Vector(0, height), nullptr)
 {
     damage = 0.0;
+    hitPosition = Vector(0, 0);
+    hitTimer = 0;
     inMotion = false;
+    collisionCount = 0;
     setProjectileType(type);
     this->sprite_3d_type = SPRITE_3D_CUSTOM;
     switch (type)
@@ -121,10 +124,11 @@ void Projectile::collision(Entity *other, Game *game)
     default:
         break;
     };
-    // delete the projectile on collision
-    this->position_set(-100, -100); // move it off-screen first to avoid multiple collisions
+    // deactivate projectile and show hit flash
+    this->hitPosition = this->position; // save before moving off-screen
+    this->position_set(-100, -100);
     this->inMotion = false;
-    this->is_active = false;
+    this->hitTimer = SPEED_SCALE(50); // number of frames to display the X flash
     this->is_visible = false;
 }
 
@@ -388,6 +392,42 @@ void Projectile::makeShell(float height)
     }
 }
 
+void Projectile::render(Draw *draw, Game *game)
+{
+    if (hitTimer == 0 || !game || !draw)
+        return;
+
+    Camera *cam = game->getCamera();
+    if (!cam)
+        return;
+
+    const Vector ss = draw->getDisplaySize();
+    const float wdx = hitPosition.x - cam->position.x;
+    const float wdz = hitPosition.y - cam->position.y;
+    const float wdy = 1.0f - cam->height; // mid-body world height
+
+    // transform to camera space
+    const float cx = wdx * (-cam->direction.y) + wdz * cam->direction.x;
+    const float cz = wdx * cam->direction.x + wdz * cam->direction.y;
+    if (cz <= 0.1f)
+        return; // behind camera
+
+    const int sx = (int)((cx / cz) * ss.y + ss.x * 0.5f);
+    const int sy = (int)((-wdy / cz) * ss.y + ss.y * 0.5f);
+    if (sx < 0 || sx >= (int)ss.x || sy < 0 || sy >= (int)ss.y)
+        return;
+
+    // scale arm length with distance; clamp to sensible pixel range
+    int r = (int)(ss.y / (5.0f * cz));
+    if (r < 4)
+        r = 4;
+    if (r > 18)
+        r = 18;
+
+    draw->line(sx - r, sy - r, sx + r, sy + r, WEAPON_HIT_COLOR);
+    draw->line(sx + r, sy - r, sx - r, sy + r, WEAPON_HIT_COLOR);
+}
+
 void Projectile::setDamage(float damage)
 {
     this->damage = damage;
@@ -410,7 +450,18 @@ void Projectile::setSpeed(float speed)
 
 void Projectile::update(Game *game)
 {
-    if (!inMotion || !is_active || !game)
+    // Tick down the hit flash
+    if (!inMotion)
+    {
+        if (hitTimer > 0 && --hitTimer == 0)
+        {
+            is_active = false;
+            is_visible = false;
+        }
+        return;
+    }
+
+    if (!is_active || !game)
         return;
 
     GhoulsLevel *currentLevel = static_cast<GhoulsLevel *>(game->current_level);
