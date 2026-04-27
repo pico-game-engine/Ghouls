@@ -507,6 +507,7 @@ bool GhoulsGame::spawnWeapons(Level *level)
     for (uint8_t i = 0; i < WEAPON_SPAWN_COUNT; i++)
     {
         Vector weaponPosition = getRandomWeaponPosition(level);
+        weaponPosition.z = 0.5f;
         WeaponType weaponType = getUniqueWeaponType(level);
         if (weaponType == WEAPON_NONE)
         {
