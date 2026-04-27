@@ -72,9 +72,18 @@ void Player::collision(Entity *other, Game *game)
     case ENTITY_NPC: // weapons (pick up)
     {
         Weapon *weapon = static_cast<Weapon *>(other);
-        if (!weapon || !equipWeapon(game->current_level, weapon))
+        if (!weapon)
         {
-            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon ? weapon->name : "unknown");
+            ENGINE_LOG_INFO("[Player:collision] Failed to cast collided NPC to Weapon");
+            return;
+        }
+        if (weapon->isHeld())
+        {
+            return; // already held
+        }
+        if (!equipWeapon(game->current_level, weapon))
+        {
+            ENGINE_LOG_INFO("[Player:collision] Failed to equip weapon: %s", weapon->name);
             return;
         }
         if (soundToggle == ToggleOn && ghoulsGame)
@@ -86,7 +95,7 @@ void Player::collision(Entity *other, Game *game)
             }
         }
         char alertMsg[64];
-        snprintf(alertMsg, sizeof(alertMsg), "Picked up %s!", weapon ? weapon->name : "unknown");
+        snprintf(alertMsg, sizeof(alertMsg), "Picked up %s!", weapon->name);
         showAlert(alertMsg);
         break;
     }
@@ -1326,26 +1335,18 @@ bool Player::equipWeapon(Level *level, Weapon *weapon)
     {
         // drop weapon right behind us
         equippedWeapon->setHeld(false);
-        {
-            equippedWeapon->position_set(
-                this->position.x - this->direction.x * 4.0f,
-                this->position.y - this->direction.y * 4.0f,
-                this->position.z);
-        }
+        equippedWeapon->position_set(
+            this->position.x - this->direction.x * 4.0f,
+            this->position.y - this->direction.y * 4.0f,
+            this->position.z);
         equippedWeapon->direction = this->direction;
         equippedWeapon->update3DSpritePosition();
         equippedWeapon = nullptr; // drop our reference
     }
     const bool wasTouched = weapon->isTouched();
     weapon->setHeld(true);
-    weapon->position_set(this->position);
-    weapon->direction = this->direction;
-    if (weapon->has3DSprite())
-    {
-        weapon->update3DSpritePosition();
-        weapon->set3DSpriteRotation(this->sprite_rotation);
-    }
     equippedWeapon = weapon;
+    updateEquippedWeaponPosition();
     // weapon is already added to level, we're just taking ownership here
     if (!wasTouched)
     {
@@ -2096,15 +2097,7 @@ void Player::update(Game *game)
             }
 
             // update equipped weapon
-            if (equippedWeapon)
-            {
-                equippedWeapon->position_set(this->position);
-                if (equippedWeapon->has3DSprite())
-                {
-                    equippedWeapon->update3DSpritePosition();
-                    equippedWeapon->set3DSpriteRotation(sprite_rotation);
-                }
-            }
+            updateEquippedWeaponPosition();
         }
         game->input = -1;
     }
@@ -2138,15 +2131,7 @@ void Player::update(Game *game)
             }
 
             // update equipped weapon
-            if (equippedWeapon)
-            {
-                equippedWeapon->position_set(this->position);
-                if (equippedWeapon->has3DSprite())
-                {
-                    equippedWeapon->update3DSpritePosition();
-                    equippedWeapon->set3DSpriteRotation(sprite_rotation);
-                }
-            }
+            updateEquippedWeaponPosition();
         }
         game->input = -1;
     }
@@ -2172,15 +2157,7 @@ void Player::update(Game *game)
         }
 
         // update equipped weapon
-        if (equippedWeapon)
-        {
-            equippedWeapon->direction = this->direction;
-            equippedWeapon->plane = this->plane;
-            if (equippedWeapon->has3DSprite())
-            {
-                equippedWeapon->set3DSpriteRotation(sprite_rotation);
-            }
-        }
+        updateEquippedWeaponPosition();
         game->input = -1;
     }
     break;
@@ -2205,15 +2182,7 @@ void Player::update(Game *game)
         }
 
         // update equipped weapon
-        if (equippedWeapon)
-        {
-            equippedWeapon->direction = this->direction;
-            equippedWeapon->plane = this->plane;
-            if (equippedWeapon->has3DSprite())
-            {
-                equippedWeapon->set3DSpriteRotation(sprite_rotation);
-            }
-        }
+        updateEquippedWeaponPosition();
         game->input = -1;
     }
     break;
@@ -2258,6 +2227,23 @@ void Player::update(Game *game)
         break;
     default:
         break;
+    }
+}
+
+void Player::updateEquippedWeaponPosition()
+{
+    if (!equippedWeapon)
+    {
+        return;
+    }
+    const float adjustment = 0.7f;
+    equippedWeapon->position_set(position.x - this->direction.x * adjustment, position.y - this->direction.y * adjustment, 1.0f);
+    equippedWeapon->direction = this->direction;
+    equippedWeapon->plane = this->plane;
+    if (equippedWeapon->has3DSprite())
+    {
+        equippedWeapon->update3DSpritePosition();
+        equippedWeapon->set3DSpriteRotation(sprite_rotation);
     }
 }
 

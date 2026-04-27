@@ -103,6 +103,7 @@ public:
     bool shouldLeaveGame() const noexcept { return alertTimer == 0 && leaveGame == ToggleOn; }
     void showAlert(const char *message, uint16_t ticks = 90);
     void update(Game *game) override;
+    void updateEquippedWeaponPosition();
     void userRequest(RequestType requestType);
 
 private:
