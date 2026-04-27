@@ -59,27 +59,31 @@ void Projectile::collision(Entity *other, Game *game)
     case ENTITY_ENEMY:
     {
         other->health -= this->damage;
-        other->move_timer = SPEED_SCALE(20.0f);      // add a short move cooldown to enemies hit by projectiles
-        other->elapsed_move_timer = 0;               // reset move timer to start cooldown immediately
-        const float enemyStrength = other->strength; // save before possible removal
-        if (other->health <= 0)
+        other->move_timer = SPEED_SCALE(20.0f); // add a short move cooldown to enemies hit by projectiles
+        other->elapsed_move_timer = 0;          // reset move timer to start cooldown immediately
+
+        const bool otherHasDied = other->health <= 0;
+        if (otherHasDied)
         {
             other->health = 0;
             other->state = ENTITY_DEAD;
-
-            // remove the enemy from the level
-            game->current_level->entity_remove(other);
-
-            Player *p = static_cast<Player *>(getPlayer(game));
-            if (p && p->getGhoulsGame())
-            {
-                p->getGhoulsGame()->onGhoulDied();
-            }
         }
+
         Player *player = static_cast<Player *>(getPlayer(game));
         if (player)
         {
-            player->increaseXP(enemyStrength); // increase player XP by the enemy's strength
+            player->increaseXP(other->strength); // increase player XP by the enemy's strength
+            GhoulsGame *ghoulsGame = player->getGhoulsGame();
+            if (ghoulsGame && otherHasDied)
+            {
+                ghoulsGame->onGhoulDied();
+            }
+        }
+
+        if (otherHasDied)
+        {
+            // remove the enemy from the level
+            game->current_level->entity_remove(other);
         }
 
         switch (projectileType)
