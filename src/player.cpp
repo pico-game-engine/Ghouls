@@ -1336,6 +1336,7 @@ bool Player::equipWeapon(Level *level, Weapon *weapon)
         equippedWeapon->update3DSpritePosition();
         equippedWeapon = nullptr; // drop our reference
     }
+    const bool wasTouched = weapon->isTouched();
     weapon->setHeld(true);
     weapon->position_set(this->position);
     weapon->direction = this->direction;
@@ -1346,6 +1347,10 @@ bool Player::equipWeapon(Level *level, Weapon *weapon)
     }
     equippedWeapon = weapon;
     // weapon is already added to level, we're just taking ownership here
+    if (!wasTouched)
+    {
+        increaseWeaponAmmo();
+    }
     return true;
 }
 
@@ -1515,6 +1520,43 @@ void Player::handleMenu(Draw *draw, Game *game)
     draw->setColor(0x0000);
     game->input = -1;
     drawMenuType2(draw, currentMenuIndex, currentSettingsIndex);
+}
+
+void Player::increaseWeaponAmmo()
+{
+    if (equippedWeapon == nullptr)
+    {
+        return;
+    }
+    uint16_t ammoToAdd = 0;
+    switch (equippedWeapon->getWeaponType())
+    {
+    case WEAPON_RIFLE:
+        ammoToAdd = (uint16_t)this->level;
+        break;
+    case WEAPON_SHOTGUN:
+        if (this->level >= 2)
+        {
+            ammoToAdd = (uint16_t)this->level / 2;
+        }
+        break;
+    case WEAPON_CROSSBOW:
+        if (this->level >= 3)
+        {
+            ammoToAdd = (uint16_t)this->level / 3;
+        }
+        break;
+    case WEAPON_ROCKET_LAUNCHER:
+        if (this->level >= 4)
+        {
+            ammoToAdd = (uint16_t)this->level / 4;
+        }
+        break;
+    default:
+        break;
+    }
+    equippedWeapon->addMaxAmmo(ammoToAdd);
+    equippedWeapon->addAmmo(ammoToAdd);
 }
 
 void Player::increaseXP(uint16_t amount)

@@ -82,6 +82,7 @@ public:
     ToggleState getSoundToggle() const noexcept { return soundToggle; }
     ToggleState getVibrationToggle() const noexcept { return vibrationToggle; }
     void handleMenu(Draw *canvas, Game *game);
+    void increaseWeaponAmmo();
     void increaseXP(uint16_t amount);
     void processInput();
     void render(Draw *canvas, Game *game) override;
