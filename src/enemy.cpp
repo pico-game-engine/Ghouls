@@ -45,7 +45,7 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     set3DSpriteRotation(rotation);
     start_position = position;
     end_position = endPosition == Vector(-1, -1) ? position : endPosition;
-    state = ENTITY_IDLE;
+    state = ENTITY_MOVING_TO_END;
     this->health = ENEMY_HEALTH_BASE;
     this->max_health = ENEMY_HEALTH_BASE;
     sprite_3d->setWireframe(WIREFRAME_ENABLED);
