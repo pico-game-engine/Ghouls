@@ -56,6 +56,14 @@ void Player::collision(Entity *other, Game *game)
         // Check if enemy can attack
         if (other->elapsed_attack_timer >= other->attack_timer)
         {
+            if (ghoulsGame)
+            {
+                Sound *sound = ghoulsGame->getGameSound();
+                if (sound)
+                {
+                    sound->playWAV(ASSETS_FOLDER "ghouls-growl-loud.wav");
+                }
+            }
             other->elapsed_attack_timer = 0; // Reset enemy attack timer
             this->health -= other->strength;
             this->state = ENTITY_ATTACKED;
