@@ -362,7 +362,7 @@ void GhoulsGame::refreshPlayer()
         // no need to check for level here because
         // if weapon is allocated then level exists
         equippedWeapon->reset(getCurrentLevel());
-        equippedWeapon->setDamage(equippedWeapon->getDamage() + player->strength);
+        equippedWeapon->setDamage(equippedWeapon->getDamage() + (player->strength / 2));
     }
 }
 
