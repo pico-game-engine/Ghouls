@@ -338,7 +338,10 @@ void GhoulsGame::onGhoulDied()
     {
         ghoulCountSpawned = 0;
         ghoulCountTotal = 0;
-        gameTime->setTimeOfDay(TIME_DAY);
+        if (gameTime->getTimeOfDay() == TIME_NIGHT)
+        {
+            gameTime->setTimeOfDay(TIME_DAY);
+        }
     }
 }
 
