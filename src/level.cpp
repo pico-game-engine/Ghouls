@@ -7,23 +7,14 @@
 #include <math.h>
 #include <stdio.h>
 
-GhoulsLevel::GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame)
+GhoulsLevel::GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame, const char *levelMapFilename)
     : Level(name, size, game), ghoulsGame(ghoulsGame)
 {
-    if (!setMapPack(defaultMapPack))
+    if (!setMapPack(levelMapFilename))
     {
         ENGINE_LOG_INFO("[GhoulsLevel:constructor] Failed to set default map pack for the level\n");
         return;
     }
-    // else
-    // {
-    //     mapPackSaveToFile(ASSETS_FOLDER "home.pceg", &mapData);
-    // }
-    // if (!setMapPack(ASSETS_FOLDER "home.pceg"))
-    // {
-    //     ENGINE_LOG_INFO("[GhoulsLevel:constructor] Failed to set default map pack for the level\n");
-    //     return;
-    // }
 #if SKY_RENDER_ALLOWED
     sky = ENGINE_MEM_NEW Sky();
     if (!sky)
@@ -196,7 +187,7 @@ bool GhoulsLevel::initializeSprites()
     }
     wallSprite->setPosition(Vector(0, 0));
     wallSprite->setRotation(0.0f);
-    wallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
+    wallSprite->createWall(0, 0.75f, 0, (float)MAP_WALL_LENGTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
     wallSprite->setActive(true);
 
     // vertical wall (left/right borders: segment width = 8, rotation = pi/2)
@@ -208,7 +199,7 @@ bool GhoulsLevel::initializeSprites()
     }
     vWallSprite->setPosition(Vector(0, 0));
     vWallSprite->setRotation((float)(M_PI / 2.0));
-    vWallSprite->createWall(0, 0.75f, 0, 8.0f, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
+    vWallSprite->createWall(0, 0.75f, 0, (float)MAP_WALL_LENGTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
     vWallSprite->setActive(true);
 
     return true;
@@ -289,13 +280,28 @@ void GhoulsLevel::registerSpritePositionsOnMap(DynamicMap *map)
     }
 
     // wall segments
+    const int wallHalf = MAP_WALL_LENGTH / 2;
     for (uint8_t i = 0; i < mapData.hWallCount; i++)
     {
-        map->setTile(mapData.hWallPositions[i].x, mapData.hWallPositions[i].y, TILE_WALL);
+        int cx = (int)mapData.hWallPositions[i].x;
+        int cy = (int)mapData.hWallPositions[i].y;
+        for (int dx = -wallHalf; dx <= wallHalf; dx++)
+        {
+            int tx = cx + dx;
+            if (tx >= 0 && cy >= 0)
+                map->setTile((uint8_t)tx, (uint8_t)cy, TILE_WALL);
+        }
     }
     for (uint8_t i = 0; i < mapData.vWallCount; i++)
     {
-        map->setTile(mapData.vWallPositions[i].x, mapData.vWallPositions[i].y, TILE_WALL);
+        int cx = (int)mapData.vWallPositions[i].x;
+        int cy = (int)mapData.vWallPositions[i].y;
+        for (int dy = -wallHalf; dy <= wallHalf; dy++)
+        {
+            int ty = cy + dy;
+            if (cx >= 0 && ty >= 0)
+                map->setTile((uint8_t)cx, (uint8_t)ty, TILE_WALL);
+        }
     }
 }
 

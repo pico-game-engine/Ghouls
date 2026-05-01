@@ -18,7 +18,7 @@ class GhoulsGame;
 class GhoulsLevel : public Level
 {
 public:
-    GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame);
+    GhoulsLevel(const char *name, const Vector &size, Game *game, GhoulsGame *ghoulsGame, const char *levelMapFilename = ASSETS_FOLDER "home.ghoulsmap");
     ~GhoulsLevel();
     bool collisionMapCheck(Vector new_position);
     map_data_t *getMapData() { return &mapData; }
