@@ -30,8 +30,7 @@ public:
 #endif
     bool isPositionAvailable(Vector position);
     virtual void render(Game *game) override;
-    void renderMiniMap(Draw *canvas);
-    void renderMiniatureMiniMap(Draw *canvas);
+    void renderMiniMap(Draw *canvas, bool miniature = false);
     bool setMapPack(const char *filename);
     bool setMapPack(const map_data_t &newMapData);
     virtual void update(Game *game) override;
