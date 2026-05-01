@@ -2079,7 +2079,7 @@ void Player::render(Draw *canvas, Game *game)
             GhoulsLevel *level = ghoulsGame->getCurrentLevel();
             if (level)
             {
-                level->renderMiniatureMiniMap(canvas);
+                level->renderMiniMap(canvas, true);
             }
         }
 
