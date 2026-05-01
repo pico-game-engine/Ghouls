@@ -64,6 +64,7 @@
 
 #define MAP_WALL_HEIGHT 3.0f
 #define MAP_WALL_DEPTH 0.2f
+#define MAP_WALL_LENGTH 8
 
 #ifndef ENEMY_SPAWN_MAX
 #define ENEMY_SPAWN_MAX 5 // about 10kb if max_triangles is set to 48
