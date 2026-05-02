@@ -382,4 +382,8 @@ void Weapon::update(Game *game)
             set3DSpriteRotation(rotation_angle);
         }
     }
+    else if (currentProjectile && !currentProjectile->is_active)
+    {
+        currentProjectile = nullptr;
+    }
 }
