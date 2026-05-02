@@ -4,6 +4,14 @@
 
 #define GITHUB_ASSETS_URL "https://raw.githubusercontent.com/jblanked/Ghouls/dev/src/assets/"
 
+#ifndef MAX_MAP_PACK_FILES
+#define MAX_MAP_PACK_FILES 5
+#endif
+
+#ifndef MAX_LOBBY_ENTRIES
+#define MAX_LOBBY_ENTRIES 4
+#endif
+
 #ifndef ASSETS_FOLDER
 #define ASSETS_FOLDER "assets/"
 #endif
@@ -80,6 +88,12 @@
 
 #define TREE_TILE_SIZE 3
 #define HOUSE_TILE_SIZE 3
+
+typedef struct
+{
+    char game_id[37];
+    char game_name[64];
+} lobby_entry_t;
 
 typedef struct
 {
