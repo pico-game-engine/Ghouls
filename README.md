@@ -1,5 +1,5 @@
 ## Ghouls
-A simple 3D action-adventure game built with the Pico Game Engine. Search for safety and weapons during the day and fight off ghouls at night. Explore the world, gather resources, and survive as long as you can!
+A round-based survival game built with the Pico Game Engine. Search for safety and weapons during the day and fight off ghouls at night. Explore the world, gather resources, and survive as long as you can!
 
 ---
 
