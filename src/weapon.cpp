@@ -30,25 +30,29 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
         damage = 15.0f;
         ammo = 30;
         projectileType = PROJECTILE_BULLET;
-        makeRifle(height);
+        this->name = "rifle";
+        this->size.x = 0.10f * height;
         break;
     case WEAPON_SHOTGUN:
         damage = 20.0f;
         ammo = 10;
         projectileType = PROJECTILE_SHELL;
-        makeShotgun(height);
+        this->name = "shotgun";
+        this->size.x = 0.12f * height;
         break;
     case WEAPON_ROCKET_LAUNCHER:
         damage = 50.0f;
         ammo = 5;
         projectileType = PROJECTILE_ROCKET;
-        makeRocketLauncher(height);
+        this->name = "rocket-launcher";
+        this->size.x = 0.22f * height;
         break;
     case WEAPON_CROSSBOW:
         damage = 35.0f;
         projectileType = PROJECTILE_ARROW;
         ammo = 15;
-        makeCrossbow(height);
+        this->name = "crossbow";
+        this->size.x = 0.80f * height;
         break;
     default:
         damage = 0.0f;
@@ -57,6 +61,9 @@ Weapon::Weapon(WeaponType type, float height, Vector position) : Entity("Weapon"
         break;
     };
     maxAmmo = ammo;
+    char path[256];
+    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
+    sprite_3d->fromPath(path);
     sprite_3d->setWireframe(WIREFRAME_ENABLED);
 }
 
@@ -166,46 +173,6 @@ bool Weapon::isTouched() const
 WeaponType Weapon::getWeaponType() const
 {
     return weaponType;
-}
-
-void Weapon::makeCrossbow(float height)
-{
-    this->name = "crossbow";
-    const float s = height / 2.0f;
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-    this->size.x = 0.80f * s * 2.0f;
-}
-
-void Weapon::makeRifle(float height)
-{
-    this->name = "rifle";
-    const float s = height / 2.0f;
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-    this->size.x = 0.10f * s * 2.0f;
-}
-
-void Weapon::makeRocketLauncher(float height)
-{
-    this->name = "rocket-launcher";
-    const float s = height / 2.0f;
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-    this->size.x = 0.22f * s * 2.0f;
-}
-
-void Weapon::makeShotgun(float height)
-{
-    this->name = "shotgun";
-    const float s = height / 2.0f;
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-    this->size.x = 0.12f * s * 2.0f;
 }
 
 void Weapon::reset()

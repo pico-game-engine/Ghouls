@@ -23,19 +23,19 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     switch (enemyType)
     {
     case ENEMY_BULLY:
-        this->makeBully(height);
+        this->name = "bully";
         this->strength = 10.0f;
         this->speed = SPEED_SCALE(0.2f);
         this->attack_timer = SPEED_SCALE(200.0f);
         break;
     case ENEMY_CREEPER:
-        this->makeCreeper(height);
+        this->name = "creeper";
         this->strength = 20.0f;
         this->speed = SPEED_SCALE(0.1f);
         this->attack_timer = SPEED_SCALE(320.0f);
         break;
     case ENEMY_PUNK:
-        this->makePunk(height);
+        this->name = "punk";
         this->strength = 15.0f;
         this->speed = SPEED_SCALE(0.14f);
         this->attack_timer = SPEED_SCALE(240.0f);
@@ -43,6 +43,9 @@ Enemy::Enemy(const char *name, Vector position, EnemyType enemyType, float heigh
     default:
         break;
     }
+    char path[256];
+    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
+    sprite_3d->fromPath(path);
     set3DSpriteRotation(rotation);
     start_position = position;
     end_position = endPosition == Vector(-1, -1) ? position : endPosition;
@@ -112,45 +115,6 @@ Vector Enemy::getPlayerPosition(Game *game)
         }
     }
     return this->end_position;
-}
-
-void Enemy::makeBully(float height)
-{
-    if (!sprite_3d)
-    {
-        ENGINE_LOG_INFO("[Enemy:makeBully] Sprite3D instance is null for enemy: %s\n", this->name);
-        return;
-    }
-    this->name = "bully";
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-}
-
-void Enemy::makePunk(float height)
-{
-    if (!sprite_3d)
-    {
-        ENGINE_LOG_INFO("[Enemy:makePunk] Sprite3D instance is null for enemy: %s\n", this->name);
-        return;
-    }
-    this->name = "punk";
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-}
-
-void Enemy::makeCreeper(float height)
-{
-    if (!sprite_3d)
-    {
-        ENGINE_LOG_INFO("[Enemy:makeCreeper] Sprite3D instance is null for enemy: %s\n", this->name);
-        return;
-    }
-    this->name = "creeper";
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
 }
 
 void Enemy::update(Game *game)

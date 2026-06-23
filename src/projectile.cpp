@@ -18,22 +18,22 @@ Projectile::Projectile(ProjectileType type, float height, Vector position) : Ent
     switch (type)
     {
     case PROJECTILE_BULLET:
-        makeBullet(height);
+        this->name = "bullet";
         speed = SPEED_SCALE(1.0f);
         size = Vector(0.2f, height);
         break;
     case PROJECTILE_ARROW:
-        makeArrow(height);
+        this->name = "arrow";
         speed = SPEED_SCALE(0.6f);
         size = Vector(0.2f, height);
         break;
     case PROJECTILE_ROCKET:
-        makeRocket(height);
+        this->name = "rocket";
         speed = SPEED_SCALE(0.3f);
         size = Vector(1.0f, height);
         break;
     case PROJECTILE_SHELL:
-        makeShell(height);
+        this->name = "shell";
         speed = SPEED_SCALE(0.8f);
         size = Vector(0.4f, height);
         break;
@@ -41,8 +41,15 @@ Projectile::Projectile(ProjectileType type, float height, Vector position) : Ent
         speed = SPEED_SCALE(0.1f);
         break;
     };
-    if (sprite_3d)
-        sprite_3d->setWireframe(WIREFRAME_ENABLED);
+    sprite_3d = ENGINE_MEM_NEW Sprite3D();
+    if (!sprite_3d)
+        return;
+    sprite_3d->clearTriangles();
+    sprite_3d->setActive(true);
+    char path[256];
+    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
+    sprite_3d->fromPath(path);
+    sprite_3d->setWireframe(WIREFRAME_ENABLED);
 }
 
 Projectile::~Projectile()
@@ -159,58 +166,6 @@ Entity *Projectile::getPlayer(Game *game) const
         }
     }
     return nullptr;
-}
-
-void Projectile::makeArrow(float height)
-{
-    sprite_3d = ENGINE_MEM_NEW Sprite3D();
-    if (!sprite_3d)
-        return;
-    this->name = "arrow";
-    sprite_3d->clearTriangles();
-    sprite_3d->setActive(true);
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-}
-
-void Projectile::makeBullet(float height)
-{
-    sprite_3d = ENGINE_MEM_NEW Sprite3D();
-    if (!sprite_3d)
-        return;
-    this->name = "bullet";
-    sprite_3d->clearTriangles();
-    sprite_3d->setActive(true);
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-}
-
-void Projectile::makeRocket(float height)
-{
-    sprite_3d = ENGINE_MEM_NEW Sprite3D();
-    if (!sprite_3d)
-        return;
-    this->name = "rocket";
-    sprite_3d->clearTriangles();
-    sprite_3d->setActive(true);
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
-}
-
-void Projectile::makeShell(float height)
-{
-    sprite_3d = ENGINE_MEM_NEW Sprite3D();
-    if (!sprite_3d)
-        return;
-    this->name = "shell";
-    sprite_3d->clearTriangles();
-    sprite_3d->setActive(true);
-    char path[256];
-    snprintf(path, sizeof(path), "%s%s.sprite3d", ASSETS_FOLDER, this->name);
-    sprite_3d->fromPath(path);
 }
 
 void Projectile::render(Draw *draw, Game *game)
