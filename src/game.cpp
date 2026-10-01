@@ -5,6 +5,7 @@
 #include "pico-game-engine/engine/engine.hpp"
 #include <math.h>
 #include <stdio.h>
+#include HTTP_INCLUDE
 
 GhoulsGame::GhoulsGame(const char *username, const char *password, bool soundEnabled)
 {
@@ -74,6 +75,11 @@ void GhoulsGame::endGame()
 {
     shouldExit = true;
     isGameRunning = false;
+    if (isOnline)
+    {
+        HTTP_WEBSOCKET_STOP();
+    }
+    isOnline = false; // reset for next game
 }
 
 GhoulsLevel *GhoulsGame::getCurrentLevel() const
@@ -105,6 +111,12 @@ Vector GhoulsGame::getRandomGhoulPosition(Level *level)
     GhoulsLevel *ghoulsLevel = static_cast<GhoulsLevel *>(level);
     map_data_t *mapData = ghoulsLevel->getMapData();
 
+    if (mapData->ghoulCount == 0)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:getRandomGhoulPosition] No ghoul spawn points in map\n");
+        return Vector(4, 20); // fallback near player start
+    }
+
     uint8_t attempts = 0;
     uint8_t randomIndex = 0;
     do
@@ -126,6 +138,12 @@ Vector GhoulsGame::getRandomWeaponPosition(Level *level)
 {
     GhoulsLevel *ghoulsLevel = static_cast<GhoulsLevel *>(level);
     map_data_t *mapData = ghoulsLevel->getMapData();
+
+    if (mapData->weaponCount == 0)
+    {
+        ENGINE_LOG_INFO("[GhoulsGame:getRandomWeaponPosition] No weapon spawn points in map\n");
+        return Vector(4, 20); // fallback near player start
+    }
 
     uint8_t attempts = 0;
     Vector candidate;
@@ -280,8 +298,17 @@ void GhoulsGame::makeGhoulsGoToPlayer()
     }
 }
 
-void GhoulsGame::onGhoulDied()
+void GhoulsGame::onGhoulDied(const char *ghoulName)
 {
+    if (isOnline)
+    {
+        // Tell the server to remove the locally-killed ghoul.
+        if (player)
+        {
+            player->addPendingGhoulKill(ghoulName);
+        }
+        return;
+    }
     if (ghoulCountCurrent > 0)
     {
         ghoulCountCurrent--;
@@ -428,7 +455,7 @@ bool GhoulsGame::spawnGhouls(uint8_t count)
     return true;
 }
 
-GhoulsLevel *GhoulsGame::spawnLevel(Game *game)
+GhoulsLevel *GhoulsGame::spawnLevel(Game *game, const char *levelName, bool online)
 {
     if (!player)
     {
@@ -436,8 +463,11 @@ GhoulsLevel *GhoulsGame::spawnLevel(Game *game)
         return nullptr;
     }
 
-    GhoulsLevel *newLevel = ENGINE_MEM_NEW GhoulsLevel("Level", draw->getDisplaySize(), game, this,
-                                                       selectedMapFile[0] != '\0' ? selectedMapFile : ASSETS_FOLDER "home.ghoulsmap");
+    // Online: fixed map; entities are server-authoritative.
+    const char *mapFile = online ? ASSETS_FOLDER "home.ghoulsmap"
+                                 : (selectedMapFile[0] != '\0' ? selectedMapFile : ASSETS_FOLDER "home.ghoulsmap");
+
+    GhoulsLevel *newLevel = ENGINE_MEM_NEW GhoulsLevel(levelName, draw->getDisplaySize(), game, this, mapFile);
     if (!newLevel)
     {
         ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to create Level instance\n");
@@ -447,11 +477,15 @@ GhoulsLevel *GhoulsGame::spawnLevel(Game *game)
     newLevel->entity_add(player);
     newLevel->setClearAllowed(false);
 
-    if (!spawnWeapons(newLevel))
+    // Online weapons come from server
+    if (!online)
     {
-        ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to spawn weapons for the level\n");
-        ENGINE_MEM_DELETE newLevel;
-        return nullptr;
+        if (!spawnWeapons(newLevel))
+        {
+            ENGINE_LOG_INFO("[GhoulsGame:spawnLevel] Failed to spawn weapons for the level\n");
+            ENGINE_MEM_DELETE newLevel;
+            return nullptr;
+        }
     }
 
     // update 3D sprite position immediately after setting player position
@@ -531,6 +565,7 @@ bool GhoulsGame::startGame()
     }
 
     // spawn initial level based on currentLevelIndex
+    isOnline = false; // always a local game here
     Level *initialLevel = spawnLevel(game);
     if (!initialLevel)
     {
@@ -580,8 +615,13 @@ bool GhoulsGame::startGameOnline()
         return false;
     }
 
-    // spawn initial level based on currentLevelIndex
-    Level *initialLevel = spawnLevel(game);
+    // Online level; entities come from the server.
+    isOnline = true;
+    if (player)
+    {
+        player->clearPendingGhoulKills();
+    }
+    Level *initialLevel = spawnLevel(game, "Online", true);
     if (!initialLevel)
     {
         ENGINE_LOG_INFO("[GhoulsGame:startGameOnline] Failed to spawn initial level\n");
@@ -598,6 +638,7 @@ bool GhoulsGame::startGameOnline()
 
     isGameRunning = true; // Set the flag to indicate game is running
     gameTime->reset();    // ensure day starts at 0
+    player->showAlert("Online game started!", 60);
     return true;
 }
 
@@ -622,21 +663,24 @@ void GhoulsGame::updateDraw()
         if (!dayJustSwitched)
         {
             dayJustSwitched = true;
-            // im not deleting here since I want the player
-            // to see the ghouls walking back to their spawns
-            makeGhoulsGoHome();
 #if SKY_RENDER_ALLOWED
             setSkyType(TIME_DAY);
 #endif
 #if GROUND_RENDER_ALLOWED
             setGroundType(TIME_DAY);
 #endif
-            if (soundAllowed())
+            if (!isOnline)
             {
-                gameSound->stop();
-                gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+                // im not deleting here since I want the player
+                // to see the ghouls walking back to their spawns
+                makeGhoulsGoHome();
+                if (soundAllowed())
+                {
+                    gameSound->stop();
+                    gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+                }
+                player->showAlert("You survived the night.. for now");
             }
-            player->showAlert("You survived the night.. for now");
         }
     }
     else
@@ -644,37 +688,41 @@ void GhoulsGame::updateDraw()
         if (dayJustSwitched)
         {
             dayJustSwitched = false; // switching to night
-            // remove old ghouls
-            if (!removeGhoulsFromLevel())
-            {
-                ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to remove ghouls for the night\n");
-                return;
-            }
-            // spawn new ghouls for the night based on current round
-            if (!spawnGhouls(currentRound))
-            {
-                ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to spawn ghouls for the night\n");
-                return;
-            }
-            // increase difficulty of ghouls each night
-            increaseDifficulty();
-            // make ghouls attack player
-            makeGhoulsGoToPlayer();
 #if SKY_RENDER_ALLOWED
             setSkyType(TIME_NIGHT);
 #endif
 #if GROUND_RENDER_ALLOWED
             setGroundType(TIME_NIGHT);
 #endif
-            currentRound++;  // Increment round (for next night)
-            refreshPlayer(); // refresh player state to update weapon and health displays after day ends
-            if (soundAllowed())
+            // Online: server controls ghoul spawning.
+            if (!isOnline)
             {
-                gameSound->stop();
-                gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
-                gameSound->playWAV(ASSETS_FOLDER "ghouls-growling.wav");
+                // remove old ghouls
+                if (!removeGhoulsFromLevel())
+                {
+                    ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to remove ghouls for the night\n");
+                    return;
+                }
+                // spawn new ghouls for the night based on current round
+                if (!spawnGhouls(currentRound))
+                {
+                    ENGINE_LOG_INFO("[GhoulsGame:updateDraw] Failed to spawn ghouls for the night\n");
+                    return;
+                }
+                // increase difficulty of ghouls each night
+                increaseDifficulty();
+                // make ghouls attack player
+                makeGhoulsGoToPlayer();
+                currentRound++;  // Increment round (for next night)
+                refreshPlayer(); // refresh player state to update weapon and health displays after day ends
+                if (soundAllowed())
+                {
+                    gameSound->stop();
+                    gameSound->playWAV(ASSETS_FOLDER "ambience.wav");
+                    gameSound->playWAV(ASSETS_FOLDER "ghouls-growling.wav");
+                }
+                player->showAlert("The ghouls are coming...");
             }
-            player->showAlert("The ghouls are coming...");
         }
     }
 

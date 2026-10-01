@@ -138,6 +138,7 @@ bool GhoulsLevel::initializeSprites()
         return false;
     }
     houseSprite->initializeAsHouse(Vector(), 3.0f, 3.0f, 0.0f, mapData.houseColor, WIREFRAME_ENABLED);
+    houseSprite->bakeTransform();
 
     // tree
     treeSprite = ENGINE_MEM_NEW Sprite3D();
@@ -147,6 +148,7 @@ bool GhoulsLevel::initializeSprites()
         return false;
     }
     treeSprite->initializeAsTree(Vector(), 4.0f, mapData.treeColor, WIREFRAME_ENABLED);
+    treeSprite->bakeTransform();
 
     // horizontal wall (top/bottom borders: len = MAP_WIDTH, rotation = 0)
     wallSprite = ENGINE_MEM_NEW Sprite3D();
@@ -159,6 +161,7 @@ bool GhoulsLevel::initializeSprites()
     wallSprite->setRotation(0.0f);
     wallSprite->createWall(0, 0.75f, 0, (float)MAP_WALL_LENGTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
     wallSprite->setActive(true);
+    wallSprite->bakeTransform();
 
     // vertical wall (left/right borders: segment width = 8, rotation = pi/2)
     vWallSprite = ENGINE_MEM_NEW Sprite3D();
@@ -171,6 +174,7 @@ bool GhoulsLevel::initializeSprites()
     vWallSprite->setRotation((float)(M_PI / 2.0));
     vWallSprite->createWall(0, 0.75f, 0, (float)MAP_WALL_LENGTH, MAP_WALL_HEIGHT, MAP_WALL_DEPTH, mapData.wallColor, WIREFRAME_ENABLED);
     vWallSprite->setActive(true);
+    vWallSprite->bakeTransform();
 
     return true;
 }
@@ -275,11 +279,41 @@ void GhoulsLevel::registerSpritePositionsOnMap(DynamicMap *map)
     }
 }
 
-void GhoulsLevel::render(Game *game)
+void GhoulsLevel::render(Game *game, bool clamp)
 {
     Camera *gameCamera = game->getCamera();
     Player *player = ghoulsGame->getPlayer();
     Vector ss = game->draw->getDisplaySize();
+
+    // Sun position and shadow color
+    Time *gt = ghoulsGame->getGameTime();
+    uint16_t t = gt->getTime();
+    uint16_t half = TICKS_PER_DAY / 2;
+    float lx, ly, lz;
+    setShadowColor(0x39E7);
+
+    if (gt->getTimeOfDay() == TIME_DAY)
+    {
+        // Sun arcs east -> west
+        float dayT = (float)t / (float)half; // 0→1
+        float a = (1.0f - dayT * 2.0f) * (M_PI / 3.0f);
+        lx = sinf(a);
+        ly = cosf(a);
+        lz = 0.0f;
+    }
+    else
+    {
+        // Night: very dim, low moon
+        float nightT = (float)(t - half) / (float)half; // 0→1
+        float a = (nightT * 2.0f - 1.0f) * (M_PI / 6.0f);
+        lx = sinf(a) * 0.3f;
+        ly = fabsf(cosf(a)) * 0.15f + 0.05f;
+        lz = 0.0f;
+        setShadowColor(0x0000);
+    }
+    float len = sqrtf(lx * lx + ly * ly + lz * lz);
+    if (len > 0.001f)
+        setLightDirection(lx / len, ly / len, lz / len);
 
     // get third-person camera position
     if (gameCamera->perspective == CAMERA_THIRD_PERSON)
